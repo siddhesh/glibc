@@ -135,10 +135,8 @@ libc_hidden_def (_IO_link_in)
 
 /* Return minimum _pos markers
    Assumes the current get area is the main get area. */
-ssize_t _IO_least_marker (FILE *fp, char *end_p);
-
-ssize_t
-_IO_least_marker (FILE *fp, char *end_p)
+static ssize_t
+least_marker (FILE *fp, char *end_p)
 {
   ssize_t least_so_far = end_p - fp->_IO_read_base;
   struct _IO_marker *mark;
@@ -235,7 +233,7 @@ static int
 save_for_backup (FILE *fp, char *end_p)
 {
   /* Append [_IO_read_base..end_p] to backup area. */
-  ssize_t least_mark = _IO_least_marker (fp, end_p);
+  ssize_t least_mark = least_marker (fp, end_p);
   /* needed_size is how much space we need in the backup area. */
   size_t needed_size = (end_p - fp->_IO_read_base) - least_mark;
   /* FIXME: Dubious arithmetic if pointers are NULL */
