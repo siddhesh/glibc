@@ -94,6 +94,7 @@ struct _IO_FILE_complete
   void *_freeres_buf;
   struct _IO_FILE **_prevchain;
   int _mode;
+  char _short_backupbuf[1];
   /* Make sure we don't get into trouble again.  */
   char _unused2[15 * sizeof (int) - 5 * sizeof (void *)];
 };

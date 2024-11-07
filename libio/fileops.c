@@ -478,11 +478,8 @@ _IO_new_file_underflow (FILE *fp)
   if (fp->_IO_buf_base == NULL)
     {
       /* Maybe we already have a push back pointer.  */
-      if (fp->_IO_save_base != NULL)
-	{
-	  free (fp->_IO_save_base);
-	  fp->_flags &= ~_IO_IN_BACKUP;
-	}
+      if (_IO_have_backup (fp))
+	_IO_free_backup_area (fp);
       _IO_doallocbuf (fp);
     }
 
@@ -930,11 +927,8 @@ _IO_new_file_seekoff (FILE *fp, off64_t offset, int dir, int mode)
   if (fp->_IO_buf_base == NULL)
     {
       /* It could be that we already have a pushback buffer.  */
-      if (fp->_IO_read_base != NULL)
-	{
-	  free (fp->_IO_read_base);
-	  fp->_flags &= ~_IO_IN_BACKUP;
-	}
+      if (_IO_have_backup (fp))
+	_IO_free_backup_area (fp);
       _IO_doallocbuf (fp);
       _IO_setp (fp, fp->_IO_buf_base, fp->_IO_buf_base);
       _IO_setg (fp, fp->_IO_buf_base, fp->_IO_buf_base, fp->_IO_buf_base);
@@ -1280,11 +1274,8 @@ _IO_file_xsgetn (FILE *fp, void *data, size_t n)
   if (fp->_IO_buf_base == NULL)
     {
       /* Maybe we already have a push back pointer.  */
-      if (fp->_IO_save_base != NULL)
-	{
-	  free (fp->_IO_save_base);
-	  fp->_flags &= ~_IO_IN_BACKUP;
-	}
+      if (_IO_have_backup (fp))
+	_IO_free_backup_area (fp);
       _IO_doallocbuf (fp);
     }
 

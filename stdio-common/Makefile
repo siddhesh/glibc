@@ -275,6 +275,7 @@ tests := \
   tst-tmpnam \
   tst-ungetc \
   tst-ungetc-leak \
+  tst-ungetc-nomem \
   tst-unlockedio \
   tst-vfprintf-mbs-prec \
   tst-vfprintf-user-type \

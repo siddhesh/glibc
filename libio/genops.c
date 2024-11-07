@@ -48,6 +48,13 @@ flush_cleanup (void *not_used)
 }
 #endif
 
+static void
+free_backup_buf (FILE *fp, char *ptr)
+{
+  if (fp->_short_backupbuf != ptr)
+    free (ptr);
+}
+
 /* Fields in struct _IO_FILE after the _lock field are internal to
    glibc and opaque to applications.  We can change them as long as
    the size of struct _IO_FILE is unchanged, which is checked as the
@@ -212,7 +219,7 @@ _IO_free_backup_area (FILE *fp)
 {
   if (_IO_in_backup (fp))
     _IO_switch_to_main_get_area (fp);  /* Just in case. */
-  free (fp->_IO_save_base);
+  free_backup_buf (fp, fp->_IO_save_base);
   fp->_IO_save_base = NULL;
   fp->_IO_save_end = NULL;
   fp->_IO_backup_base = NULL;
@@ -260,7 +267,7 @@ save_for_backup (FILE *fp, char *end_p)
 	memcpy (new_buffer + avail,
 		fp->_IO_read_base + least_mark,
 		needed_size);
-      free (fp->_IO_save_base);
+      free_backup_buf (fp, fp->_IO_save_base);
       fp->_IO_save_base = new_buffer;
       fp->_IO_save_end = new_buffer + avail + needed_size;
     }
@@ -634,7 +641,7 @@ _IO_default_finish (FILE *fp, int dummy)
   for (mark = fp->_markers; mark != NULL; mark = mark->_next)
     mark->_sbuf = NULL;
 
-  if (fp->_IO_save_base)
+  if (fp->_IO_save_base && fp->_IO_save_base != fp->_short_backupbuf)
     {
       free (fp->_IO_save_base);
       fp->_IO_save_base = NULL;
@@ -997,14 +1004,10 @@ _IO_default_pbackfail (FILE *fp, int c)
 	    }
 	  else if (!_IO_have_backup (fp))
 	    {
-	      /* No backup buffer: allocate one. */
-	      /* Use nshort buffer, if unused? (probably not)  FIXME */
-	      int backup_size = 128;
-	      char *bbuf = (char *) malloc (backup_size);
-	      if (bbuf == NULL)
-		return EOF;
-	      fp->_IO_save_base = bbuf;
-	      fp->_IO_save_end = fp->_IO_save_base + backup_size;
+	      /* We need to guarantee one pushback, so start with the built-in
+		 1-char buffer.  */
+	      fp->_IO_save_base = fp->_short_backupbuf;
+	      fp->_IO_save_end = fp->_IO_save_base + 1;
 	      fp->_IO_backup_base = fp->_IO_save_end;
 	    }
 	  fp->_IO_read_base = fp->_IO_read_ptr;
@@ -1022,7 +1025,7 @@ _IO_default_pbackfail (FILE *fp, int c)
 	    return EOF;
 	  memcpy (new_buf + (new_size - old_size), fp->_IO_read_base,
 		  old_size);
-	  free (fp->_IO_read_base);
+	  free_backup_buf (fp, fp->_IO_read_base);
 	  _IO_setg (fp, new_buf, new_buf + (new_size - old_size),
 		    new_buf + new_size);
 	  fp->_IO_backup_base = fp->_IO_read_ptr;
