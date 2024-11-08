@@ -130,6 +130,7 @@ tests = \
   tst-swscanf \
   tst-ungetwc1 \
   tst-ungetwc2 \
+  tst-ungetwc-nomem \
   tst-wfile-sync \
   tst-widetext \
   tst-wmemstream1 \

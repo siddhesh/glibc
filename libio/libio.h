@@ -139,6 +139,7 @@ struct _IO_wide_data
   struct _IO_codecvt _codecvt;
 
   wchar_t _shortbuf[1];
+  wchar_t _short_backupbuf[1];
 
   const struct _IO_jump_t *_wide_vtable;
 };

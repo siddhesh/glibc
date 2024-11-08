@@ -34,6 +34,13 @@
 
 static int save_for_wbackup (FILE *fp, wchar_t *end_p) __THROW;
 
+static void
+free_wbackup_buf (FILE *fp, wchar_t *ptr)
+{
+  if (fp->_wide_data->_short_backupbuf != ptr)
+    free (ptr);
+}
+
 /* Return minimum _pos markers
    Assumes the current get area is the main get area. */
 ssize_t
@@ -125,16 +132,10 @@ _IO_wdefault_pbackfail (FILE *fp, wint_t c)
 	    }
 	  else if (!_IO_have_wbackup (fp))
 	    {
-	      /* No backup buffer: allocate one. */
-	      /* Use nshort buffer, if unused? (probably not)  FIXME */
-	      int backup_size = 128;
-	      wchar_t *bbuf = (wchar_t *) malloc (backup_size
-						  * sizeof (wchar_t));
-	      if (bbuf == NULL)
-		return WEOF;
-	      fp->_wide_data->_IO_save_base = bbuf;
-	      fp->_wide_data->_IO_save_end = (fp->_wide_data->_IO_save_base
-					      + backup_size);
+	      /* Start with the 1-byte buffer to guarantee at least 1 wide char
+		 pushback.  */
+	      fp->_wide_data->_IO_save_base = fp->_wide_data->_short_backupbuf;
+	      fp->_wide_data->_IO_save_end = fp->_wide_data->_IO_save_base + 1;
 	      fp->_wide_data->_IO_backup_base = fp->_wide_data->_IO_save_end;
 	    }
 	  fp->_wide_data->_IO_read_base = fp->_wide_data->_IO_read_ptr;
@@ -153,7 +154,7 @@ _IO_wdefault_pbackfail (FILE *fp, wint_t c)
 	    return WEOF;
 	  __wmemcpy (new_buf + (new_size - old_size),
 		     fp->_wide_data->_IO_read_base, old_size);
-	  free (fp->_wide_data->_IO_read_base);
+	  free_wbackup_buf (fp, fp->_wide_data->_IO_read_base);
 	  _IO_wsetg (fp, new_buf, new_buf + (new_size - old_size),
 		     new_buf + new_size);
 	  fp->_wide_data->_IO_backup_base = fp->_wide_data->_IO_read_ptr;
@@ -181,7 +182,7 @@ _IO_wdefault_finish (FILE *fp, int dummy)
 
   if (fp->_IO_save_base)
     {
-      free (fp->_wide_data->_IO_save_base);
+      free_wbackup_buf (fp, fp->_wide_data->_IO_save_base);
       fp->_IO_save_base = NULL;
     }
 
@@ -416,7 +417,7 @@ _IO_free_wbackup_area (FILE *fp)
 {
   if (_IO_in_backup (fp))
     _IO_switch_to_main_wget_area (fp);  /* Just in case. */
-  free (fp->_wide_data->_IO_save_base);
+  free_wbackup_buf (fp, fp->_wide_data->_IO_save_base);
   fp->_wide_data->_IO_save_base = NULL;
   fp->_wide_data->_IO_save_end = NULL;
   fp->_wide_data->_IO_backup_base = NULL;
@@ -459,7 +460,7 @@ save_for_wbackup (FILE *fp, wchar_t *end_p)
 		     fp->_wide_data->_IO_read_base + least_mark,
 		     needed_size);
 	}
-      free (fp->_wide_data->_IO_save_base);
+      free_wbackup_buf (fp, fp->_wide_data->_IO_save_base);
       fp->_wide_data->_IO_save_base = new_buffer;
       fp->_wide_data->_IO_save_end = new_buffer + avail + needed_size;
     }
